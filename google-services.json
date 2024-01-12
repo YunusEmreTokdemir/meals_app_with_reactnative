@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "501041697708",
+    "project_id": "meals-b43f8",
+    "storage_bucket": "meals-b43f8.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:501041697708:android:6adc05c728e95e2eeb2009",
+        "android_client_info": {
+          "package_name": "tr.edu.ktun.mealsapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDx5LMpqSS_HpKMAmdxoIYlSytUVi0snn4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

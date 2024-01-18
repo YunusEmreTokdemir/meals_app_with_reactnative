@@ -34,4 +34,18 @@ const fetchCategories = async () => {
   }
 };
 
-export { fetchCategories };
+const fetchMeals = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "meals"));
+    const meals = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    return meals; // This is an array of category objects
+  } catch (error) {
+    console.error("Error fetching meals: ", error);
+    throw error; // You might want to handle this error appropriately
+  }
+}
+
+export { fetchCategories, fetchMeals };

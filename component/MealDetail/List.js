@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#C8E6C9",
     },
     itemText: {
-        color: "#A1887F",
+        color: "#034f12",
         textAlign: "center",
     }
 })

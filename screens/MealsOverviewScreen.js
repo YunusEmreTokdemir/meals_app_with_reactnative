@@ -1,29 +1,35 @@
-import { useLayoutEffect } from 'react';
-
-import { MEALS,CATEGORIES } from '../data/dummy-data';
+import React, { useLayoutEffect, useState, useEffect } from 'react';
 import MealList from '../component/MealsList/MealsList';
+import { fetchMeals } from '../firebaseConfig'; // fetchMeals fonksiyonunu içe aktar
 
-function MealsOverviewScreen({route, navigation}) {
+function MealsOverviewScreen({ route, navigation }) {
+    const [displayedMeals, setDisplayedMeals] = useState([]);
+    const [categoryTitle, setCategoryTitle] = useState('');
     const catId = route.params.categoryId;
 
-    const displayedMeals = MEALS.filter((mealItem) => {
-        return mealItem.categoryIds.indexOf(catId) >= 0;
-    });
+    useEffect(() => {
+        // Kategoriye ait yemekleri çek
+        const fetchMealsForCategory = async () => {
+            const allMeals = await fetchMeals(); // fetchMeals fonksiyonunu kullan
+            const filteredMeals = allMeals.filter((meal) => meal.categoryIds.includes(catId));
+            setDisplayedMeals(filteredMeals);
+
+            // Aynı zamanda kategori başlığını çekmek için başka bir fonksiyon çağırabilirsiniz
+            // veya başka bir yerde çekilen kategorileri kullanabilirsiniz.
+            // ...
+        };
+
+        fetchMealsForCategory();
+    }, [catId]);
 
     useLayoutEffect(() => {
-        
-        const categoryTitle = CATEGORIES.find(
-            (category) => category.id === catId
-            ).title;
-        navigation.setOptions({
-        title: categoryTitle,
-        });
-    }, [catId, navigation]);
+        // Kategori başlığını ayarlayan kod buraya...
+        // Örneğin, kategorileri context'ten veya bir üst bileşenden prop olarak alabilirsiniz
+    }, [catId, navigation, categoryTitle]);
 
     return (
-        <MealList items={displayedMeals} navigation={navigation}/>
+        <MealList items={displayedMeals} navigation={navigation} />
     );
-    
 }
 
 export default MealsOverviewScreen;

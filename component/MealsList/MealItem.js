@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import MealDetails from "../MealDetails";
+import Colors from "../../constant/color";
 
 function MealItem({ 
     id, 
@@ -28,7 +29,7 @@ function MealItem({
     return (
         <View style={styles.mealItem}>
             <Pressable 
-                android_ripple={{color: '#ccc'}} 
+                android_ripple={{color: Colors.primary700}} 
                 style={({pressed}) => (pressed ? styles.buttonPressed : null)}
                 onPress={selectMealItemHandler}
                 >
@@ -54,9 +55,9 @@ const styles = StyleSheet.create({
         margin: 16,
         borderRadius: 8,
         overflow: Platform.OS === "android" ? "hidden" : "visible",        
-        backgroundColor: "#white",
+        backgroundColor: Colors.primary500,
         elevation: 4,
-        shadowColor: "black",
+        shadowColor: Colors.primary600,
         shadowOpacity: 0.35,
         shadowOffset: { width: 0, height: 2 },
         shadowRadius: 16,
@@ -73,6 +74,7 @@ const styles = StyleSheet.create({
         height: 200,
     },
     title: {
+        color: Colors.primary700,
         fontWeight: "bold",
         textAlign: "center",
         fontSize: 18,

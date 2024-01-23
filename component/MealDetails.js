@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import Colors from '../constant/color';
 
 function MealDetails({duration, complexity, affordability, style, textStyle}) {
     return (
@@ -22,5 +23,6 @@ const styles = StyleSheet.create({
     detailsItem: {
         marginHorizontal: 4,
         fontSize: 12,
+        color: Colors.primary700,
     }
 });

@@ -1,14 +1,6 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, deleteDoc } from "firebase/firestore";
-// Firebase authentication ve firestore import et
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+import { getFirestore, collection, getDocs, deleteDoc, addDoc, doc, setDoc, getDoc, query, where } from "firebase/firestore";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 const firebaseConfig = {
   apiKey: "AIzaSyBnQWICr4pNImvLZiR6ZyHV_i9ZNZBqcsI",
   authDomain: "meals-b43f8.firebaseapp.com",
@@ -63,12 +55,11 @@ const createUser = async (email, password) => {
     // Firestore'da kullanıcı detaylarını kaydet
     await setDoc(doc(db, "users", user.uid), {
       email: email,
+      role: 'customer', // Kullanıcı rolü, örneğin admin, customer, editor, vb.
       // Diğer kullanıcı bilgileri buraya eklenebilir
     });
 
-    // Kullanıcı için boş bir favorites koleksiyonu oluştur
     const favoritesRef = collection(db, "users", user.uid, "favorites");
-    // İlk favori olarak boş bir doküman oluşturabilir veya bu adımı atlayabilirsiniz
 
     return user; // Oluşturulan kullanıcıyı döndür
   } catch (error) {
@@ -127,10 +118,74 @@ const removeFavoriteMeal = async (userId, mealId) => {
   }
 };
 
+
 const getCurrentUserId = () => {
   const auth = getAuth();
   const user = auth.currentUser;
   return user ? user.uid : null;
 };
 
-export { fetchMeals, fetchCategories, createUser, login, addFavoriteMeal, removeFavoriteMeal, fetchUserFavorites, getCurrentUserId };
+
+
+const addNewMeal = async (mealDetails) => {
+  try {
+    const docRef = await addDoc(collection(db, "meals"), mealDetails);
+    console.log("Yeni yemek başarıyla eklendi, Yemek ID'si: ", docRef.id);
+    return docRef;
+  } catch (error) {
+    console.error("Yemek eklerken hata oluştu: ", error);
+    throw error;
+  }
+};
+
+// Kullanıcının rolünü Firestore'dan almak için fonksiyon
+const getUserRole = async (userId) => {
+  try {
+    const userDoc = await getDoc(doc(db, "users", userId));
+    if (userDoc.exists()) {
+      return userDoc.data().role;
+    } else {
+      return null; // Kullanıcı bulunamazsa veya rol atanmamışsa null döndür
+    }
+  } catch (error) {
+    console.error("Error fetching user role: ", error);
+    throw error;
+  }
+};
+
+// Yemek ismine göre yemek silme işlevi
+const deleteMealByName = async (mealName) => {
+  const mealsRef = collection(db, "meals");
+  const q = query(mealsRef, where("title", "==", mealName)); // 'name' yerine doğru olan 'title' kullanılıyor
+
+  try {
+    const querySnapshot = await getDocs(q);
+    const batch = querySnapshot.docs.map(async (doc) => {
+      await deleteDoc(doc.ref); // Her bir doküman için silme işlemi
+      console.log("Yemek başarıyla silindi., Yemek ID'si:", doc.id);
+    });
+
+    await Promise.all(batch); // Bulunan tüm dokümanları sil
+    return batch.length; // Silinen doküman sayısını döndür
+  } catch (error) {
+    console.error("Yemek silerken bir hata oluştu: ", error);
+    throw error;
+  }
+};
+
+const signOutUser = async () => {
+  const auth = getAuth();
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error("Error signing out: ", error);
+    throw error;
+  }
+}
+
+
+
+export { fetchMeals, fetchCategories, createUser, login, addFavoriteMeal, removeFavoriteMeal, fetchUserFavorites, getCurrentUserId, addNewMeal, getUserRole, deleteMealByName, signOutUser };
+
+
+

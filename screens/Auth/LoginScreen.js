@@ -15,7 +15,6 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     try {
       await login(email, password);
-      Alert.alert('Success ✅', 'Logged in successfully');
       navigation.navigate('MealsCategories');
     } catch (error) {
       if (error.code === 'auth/user-not-found') {

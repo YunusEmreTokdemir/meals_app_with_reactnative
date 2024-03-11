@@ -1,10 +1,11 @@
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createDrawerNavigator, DrawerItemList, DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 
-
+import { getUserRole, getCurrentUserId, signOutUser } from './firebaseConfig';
 import CategoriesScreen from './screens/CategoriesScreen';
 import MealsOverviewScreen from './screens/MealsOverviewScreen';
 import MealDetailScreen from './screens/MealDetailScreen';
@@ -13,100 +14,137 @@ import FavoritesContextProvider from './store/context/favorites-context';
 import Colors from './constant/color';
 import LoginScreen from './screens/Auth/LoginScreen';
 import SignupScreen from './screens/Auth/SignupScreen';
+import AddMealScreen from './screens/AddMealScreen';
+import DeleteMealScreen from './screens/DeleteMealScreen';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
+const CustomDrawerContent = (props) => {
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+      props.navigation.navigate('Login'); 
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  };
 
-
-
-function DrawerNavigator() {
   return (
-    <Drawer.Navigator 
-      screenOptions={{
-        headerStyle: { backgroundColor: Colors.primary500}, // categoriler üst sınır rengi
-        headerTintColor: Colors.primary700, // categoriler üst sınır yazı rengi
-        sceneContainerStyle: {backgroundColor: Colors.primary600}, // categoriler arka plan rengi
-        drawerContentStyle: {backgroundColor: Colors.primary500}, // drawer arka plan rengi
-        drawerActiveTintColor: Colors.primary700, // drawer mealcategories yazı rengi
-        drawerInactiveTintColor: Colors.primary700, // drawer favorites yazı rengi
-        drawerActiveBackgroundColor: Colors.primary600, // drawer yazı arka plan rengi
-      }} 
+    <DrawerContentScrollView 
+      {...props} 
+      style={{ backgroundColor: Colors.primary500 }}
     >
-      <Drawer.Screen 
-        name='Categories' 
-        component={CategoriesScreen} 
+      <DrawerItemList {...props} />
+      <DrawerItem
+        label="Sign Out"
+        onPress={handleSignOut}
+        icon={({ color, size }) => (
+          <Ionicons name="log-out" color={Colors.primary700} size={size} />
+        )}
+        labelStyle={{ color: Colors.primary700 }}
+      />
+    </DrawerContentScrollView>
+  );
+};
+
+const DrawerNavigator = () => {
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const userId = getCurrentUserId();
+      if (userId) {
+        const role = await getUserRole(userId);
+        setUserRole(role);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  return (
+    <Drawer.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: Colors.primary500 },
+        headerTintColor: Colors.primary700,
+        sceneContainerStyle: { backgroundColor: Colors.primary600 },
+        drawerContentStyle: { backgroundColor: Colors.primary500 },
+        drawerActiveTintColor: Colors.primary700,
+        drawerInactiveTintColor: Colors.primary700,
+        drawerActiveBackgroundColor: Colors.primary600,
+      }}
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+    >
+      <Drawer.Screen
+        name="Categories"
+        component={CategoriesScreen}
         options={{
           title: 'Meal Categories',
-          drawerIcon: ({color, size}) => 
-            <Ionicons name='list' color={color} size={size} />,
+          drawerIcon: ({ color, size }) => <Ionicons name="list" color={color} size={size} />,
         }}
       />
-      <Drawer.Screen 
-        name='Favorites' 
-        component={FavoritesScreen} 
+      <Drawer.Screen
+        name="Favorites"
+        component={FavoritesScreen}
         options={{
-          drawerIcon: ({color, size}) => 
-            <Ionicons name='star' color={color} size={size} />,
-      }}
+          title: 'Favorites',
+          drawerIcon: ({ color, size }) => <Ionicons name="star" color={color} size={size} />,
+        }}
       />
+      {userRole === 'admin' && (
+        <>
+          <Drawer.Screen
+            name="AddMeal"
+            component={AddMealScreen}
+            options={{
+              title: 'Add New Meal',
+              drawerIcon: ({ color, size }) => <Ionicons name="add" color={color} size={size} />,
+            }}
+          />
+          <Drawer.Screen
+            name="DeleteMeal"
+            component={DeleteMealScreen}
+            options={{
+              title: 'Delete Meal',
+              drawerIcon: ({ color, size }) => <Ionicons name="remove" color={color} size={size} />,
+            }}
+          />
+        </>
+      )}
     </Drawer.Navigator>
-    );
-}
+  );
+};
 
 export default function App() {
-  
   return (
     <>
       <StatusBar style="light" />
       <FavoritesContextProvider>
-      <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            headerStyle: { backgroundColor: Colors.primary500}, //mealsoverview üst sınır rengi
-            headerTintColor: Colors.primary700, //mealsoverview üst sınır yazı rengi
-            contentStyle: {backgroundColor: Colors.primary600}, //mealsoverview arka plan rengi
-          }}
-        >
-          <Stack.Screen
-          name='Login'
-          component={LoginScreen}
-          options={{
-            title: 'Login',
-          }}
-          />
-          <Stack.Screen
-          name='Register'
-          component={SignupScreen}
-          options={{
-            title: 'Sign Up',
-          }}
-          />
-        
-          <Stack.Screen 
-           name="MealsCategories" 
-           component={DrawerNavigator}
-           options={{
-              headerShown: false,
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerStyle: { backgroundColor: Colors.primary500 },
+              headerTintColor: Colors.primary700,
+              contentStyle: { backgroundColor: Colors.primary600 },
             }}
-          />
-          <Stack.Screen 
-            name="MealsOverview" 
-            color={Colors.primary700}
-            component={MealsOverviewScreen} 
-          />
-          <Stack.Screen 
-            name='MealDetail'
-            component={MealDetailScreen} 
-            options={{
-              
-              title: 'About the Meal',
-          }} 
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+          >
+            <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Login' }} />
+            <Stack.Screen name="Register" component={SignupScreen} options={{ title: 'Sign Up' }} />
+            <Stack.Screen
+              name="MealsCategories"
+              component={DrawerNavigator}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen name="MealsOverview" component={MealsOverviewScreen} />
+            <Stack.Screen
+              name="MealDetail"
+              component={MealDetailScreen}
+              options={{ title: 'About the Meal' }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
       </FavoritesContextProvider>
     </>
-    
   );
 }

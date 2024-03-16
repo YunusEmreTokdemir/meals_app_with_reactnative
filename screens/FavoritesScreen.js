@@ -52,6 +52,7 @@ function FavoritesScreen() {
   return <MealsList items={meals}/>
 }
 
+
 export default FavoritesScreen;
 
 const styles = StyleSheet.create({

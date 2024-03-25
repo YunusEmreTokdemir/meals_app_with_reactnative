@@ -1,6 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, deleteDoc, addDoc, doc, setDoc, getDoc, query, where } from "firebase/firestore";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, initializeAuth, getReactNativePersistence } from "firebase/auth";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
 const firebaseConfig = {
   apiKey: "AIzaSyBnQWICr4pNImvLZiR6ZyHV_i9ZNZBqcsI",
   authDomain: "meals-b43f8.firebaseapp.com",
@@ -13,6 +16,11 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
+
 const db = getFirestore(app);
 
 const fetchCategories = async () => {
@@ -45,7 +53,6 @@ const fetchMeals = async () => {
 
 // Firebase Authentication ile yeni bir kullanıcı oluşturma ve favorites koleksiyonu oluşturma
 const createUser = async (email, password) => {
-  const auth = getAuth();
 
   try {
     // Yeni kullanıcıyı oluştur
@@ -71,7 +78,6 @@ const createUser = async (email, password) => {
 
 // Firebase Authentication ile oturum açma fonksiyonu
 const login = async (email, password) => {
-  const auth = getAuth();
 
   try {
     // Kullanıcı girişi yap
@@ -120,7 +126,6 @@ const removeFavoriteMeal = async (userId, mealId) => {
 
 
 const getCurrentUserId = () => {
-  const auth = getAuth();
   const user = auth.currentUser;
   return user ? user.uid : null;
 };
@@ -174,7 +179,6 @@ const deleteMealByName = async (mealName) => {
 };
 
 const signOutUser = async () => {
-  const auth = getAuth();
   try {
     await signOut(auth);
   } catch (error) {

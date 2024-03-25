@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import MealsList from '../component/MealsList/MealsList';
 import Colors from '../constant/color';
@@ -11,31 +12,33 @@ function FavoritesScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const favoriteMealCtx = useContext(FavoritesContext);
 
-  useEffect(() => {
-    const loadMealsAndFavorites = async () => {
-      setIsLoading(true);
-      try {
-        const userId = getCurrentUserId(); 
-        if (!userId) {
-          console.error("No user ID found");
+  useFocusEffect(
+    useCallback(() => {
+      const loadMealsAndFavorites = async () => {
+        setIsLoading(true);
+        try {
+          const userId = getCurrentUserId(); 
+          if (!userId) {
+            console.error("No user ID found");
+            setIsLoading(false);
+            return;
+          }
+
+          const fetchedMeals = await fetchMeals();
+          const userFavoritesIds = await fetchUserFavorites(userId);
+
+          const favoriteMeals = fetchedMeals.filter(meal => userFavoritesIds.includes(meal.id));
+          setMeals(favoriteMeals);
+        } catch (error) {
+          console.error(error);
+        } finally {
           setIsLoading(false);
-          return;
         }
+      };
 
-        const fetchedMeals = await fetchMeals();
-        const userFavoritesIds = await fetchUserFavorites(userId);
-
-        const favoriteMeals = fetchedMeals.filter(meal => userFavoritesIds.includes(meal.id));
-        setMeals(favoriteMeals);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadMealsAndFavorites();
-  }, [favoriteMealCtx.ids]);
+      loadMealsAndFavorites();
+    }, [favoriteMealCtx.ids])
+  );
 
   if (isLoading) {
     return <ActivityIndicator size="large" color={Colors.primary500} />;
@@ -49,9 +52,8 @@ function FavoritesScreen() {
     );
   }
 
-  return <MealsList items={meals}/>
+  return <MealsList items={meals}/>;
 }
-
 
 export default FavoritesScreen;
 

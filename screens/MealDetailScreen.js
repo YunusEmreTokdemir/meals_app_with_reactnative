@@ -1,5 +1,5 @@
-import React, { useLayoutEffect, useState, useEffect, useContext } from 'react';
-import { Text, View, Image, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { Text, View, Image, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 
 import MealDetails from '../component/MealDetails';
 import Subtitle from '../component/MealDetail/Subtitle';
@@ -10,67 +10,79 @@ import Colors from '../constant/color';
 
 import { fetchMeals, fetchUserFavorites, addFavoriteMeal, removeFavoriteMeal, getCurrentUserId } from '../firebaseConfig';
 
-
-function MealDetailScreen({route, navigation}) {
+function MealDetailScreen({ route, navigation }) {
     const [selectedMeal, setSelectedMeal] = useState();
-    const [mealsIsFavorite, setMealsIsFavorite] = useState(false); // Added this line
-    const favoriteMealsCtx = useContext(FavoritesContext);
-    
+    const [mealsIsFavorite, setMealsIsFavorite] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Yükleme durumu
 
     const mealId = route.params.mealId;
-
-    const userId = getCurrentUserId(); // Get the current user's ID
-
+    const userId = getCurrentUserId();
 
     useEffect(() => {
         const fetchMealAndFavorites = async () => {
-          const allMeals = await fetchMeals();
-          const meal = allMeals.find((m) => m.id === mealId);
-          setSelectedMeal(meal);
-    
-          // Kullanıcının favori yemeklerini çek (Örnek userId: "user123")
-          const userFavorites = await fetchUserFavorites(userId);
-          setMealsIsFavorite(userFavorites.includes(mealId));
-        };
-    
-        fetchMealAndFavorites();
-      }, [mealId, userId]);
-      
-    
+            setIsLoading(true);
+            try {
+                const allMeals = await fetchMeals();
+                const meal = allMeals.find((m) => m.id === mealId);
+                if (!meal) {
+                    setIsLoading(false);
+                    return;
+                }
+                setSelectedMeal(meal);
 
+                const userFavorites = await fetchUserFavorites(userId);
+                setMealsIsFavorite(userFavorites.includes(mealId));
+            } catch (error) {
+                console.error(error);
+            }
+            setIsLoading(false);
+        };
+
+        fetchMealAndFavorites();
+    }, [mealId, userId]);
 
     const changeFavoriteStatusHandler = async () => {
-        if (mealsIsFavorite) {
-          await removeFavoriteMeal(userId, mealId); // Örnek userId: "user123"
-        } else {
-          await addFavoriteMeal(userId, mealId);
+        try {
+            if (mealsIsFavorite) {
+                await removeFavoriteMeal(userId, mealId);
+            } else {
+                await addFavoriteMeal(userId, mealId);
+            }
+            setMealsIsFavorite(!mealsIsFavorite);
+        } catch (error) {
+            // Hata yönetimi
+            alert('Favori durumu değiştirilirken bir hata oluştu.');
+            console.error(error);
         }
-        setMealsIsFavorite(!mealsIsFavorite);
-      };
+    };
+    
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         navigation.setOptions({
-            headerRight: () => {
-                return <IconButton 
-                    icon={mealsIsFavorite ? "star" : "star-outline"} 
+            headerRight: () => (
+                <IconButton
+                    icon={mealsIsFavorite ? "star" : "star-outline"}
                     color={Colors.primary600}
                     onPress={changeFavoriteStatusHandler}
-                />;
-            }
+                />
+            ),
         });
-    }, [navigation, mealsIsFavorite, changeFavoriteStatusHandler]);
+    }, [navigation, mealsIsFavorite]);
 
-    if (!selectedMeal) {
-        // Eğer yemek bilgisi henüz yüklenmediyse bir yükleniyor göstergesi göster
-        return <Text>Yükleniyor...</Text>;
+    if (isLoading || !selectedMeal) {
+        return (
+            <View style={styles.centered}>
+                <ActivityIndicator size="large" color={Colors.primary500} />
+            </View>
+        );
     }
 
     return (
         <ScrollView style={styles.rootContainer}>
-            <Image style={styles.image} source={{ uri: selectedMeal.imageUrl }}/>
+            <Image style={styles.image} source={{ uri: selectedMeal.imageUrl }} />
             <Text style={styles.title}>{selectedMeal.title}</Text>
-            <MealDetails 
-                duration={selectedMeal.duration} 
+            <MealDetails
+                duration={selectedMeal.duration}
                 complexity={selectedMeal.complexity}
                 affordability={selectedMeal.affordability}
                 textStyle={styles.detailText}
@@ -78,9 +90,9 @@ function MealDetailScreen({route, navigation}) {
             <View style={styles.listOuterContainer}>
                 <View style={styles.listContainer}>
                     <Subtitle>Ingredients</Subtitle>
-                    <List data={selectedMeal.ingredients}/>
+                    <List data={selectedMeal.ingredients} />
                     <Subtitle>Steps</Subtitle>
-                    <List data={selectedMeal.steps}/>
+                    <List data={selectedMeal.steps} />
                 </View>
             </View>
         </ScrollView>
@@ -120,5 +132,10 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         width: "80%",
-    }
+    },
+    centered: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
 });

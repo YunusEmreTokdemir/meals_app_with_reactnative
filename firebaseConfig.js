@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, deleteDoc, addDoc, doc, setDoc, getDoc, query, where } from "firebase/firestore";
+import { getFirestore, collection, getDocs, deleteDoc, addDoc, doc, setDoc, getDoc, query, where, startAt, endAt, orderBy, updateDoc } from "firebase/firestore";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, initializeAuth, getReactNativePersistence } from "firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -17,11 +17,16 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
-
 const db = getFirestore(app);
+
+let auth = getAuth(); // Get the Auth instance
+
+if (!auth) {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
+}
+
 
 const fetchCategories = async () => {
   try {
@@ -187,9 +192,187 @@ const signOutUser = async () => {
   }
 }
 
+const addCategory = async (categoryDetails) => {
+  try {
+    const docRef = await addDoc(collection(db, "categories"), categoryDetails);
+    console.log("The category has been added successfully,  Category IDs: ", docRef.id);
+    return docRef;
+  } catch (error) {
+    console.error("Kategori eklerken hata oluştu: ", error);
+    throw error;
+  }
+};
+
+const deleteCategoryByName = async (categoryName) => {
+  const categoriesRef = collection(db, "categories");
+  const q = query(categoriesRef, where("title", "==", categoryName)); // Kategori adına göre sorgu yap
+
+  try {
+    const querySnapshot = await getDocs(q);
+    const batch = querySnapshot.docs.map(async (doc) => {
+      await deleteDoc(doc.ref); // Her bir doküman için silme işlemi
+      console.log("Kategori başarıyla silindi., Kategori ID'si:", doc.id);
+    });
+
+    await Promise.all(batch); // Bulunan tüm dokümanları sil
+    return batch.length; // Silinen doküman sayısını döndür
+  } catch (error) {
+    console.error("Kategori silerken bir hata oluştu: ", error);
+    throw error;
+  }
+};
+
+const searchMealsByName = async (mealName) => {
+  try {
+    // `mealName` ile başlayan tüm yemekleri bulacak şekilde sorguyu yapılandırıyoruz.
+    const q = query(
+      collection(db, 'meals'),
+      orderBy('title'), // 'title' alanına göre sıralama eklenmelidir.
+      startAt(mealName),
+      endAt(mealName + '\uf8ff') // Bu, Unicode karakter aralığını kullanarak verilen string ile başlayan tüm string'leri kapsar.
+    );
+    const querySnapshot = await getDocs(q);
+    const meals = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    return meals;
+  } catch (error) {
+    console.error('Error searching meals by name:', error);
+    throw error;
+  }
+};
+
+// Yemek güncelleme işlevi
+const updateMealByName = async (mealName, mealDetails) => {
+  try {
+    // Yemeğin adına göre sorgu oluştur
+    const q = query(collection(db, "meals"), where("title", "==", mealName));
+    const querySnapshot = await getDocs(q);
+
+    // Eğer yemek bulunamazsa hata fırlat
+    if (querySnapshot.empty) {
+      throw new Error(`No meal found with the name: ${mealName}`);
+    }
+
+    // Güncelleme sayısını takip etmek için bir sayaç
+    let updatedCount = 0;
+
+    // Yemek bulunduysa, güncelleme işlemi yap
+    for (const docSnapshot of querySnapshot.docs) {
+      const mealRef = doc(db, "meals", docSnapshot.id);
+      
+      // Sadece girilen alanları güncelle
+      const updateData = {};
+      for (const [key, value] of Object.entries(mealDetails)) {
+        // Eğer kullanıcı bir değer girmişse ve bu değer boolean değilse, 
+        // güncelleme verisine ekleyin. Boş string kontrolü
+        if (value !== '' && value !== null && value !== undefined) {
+          updateData[key] = value;
+        }
+        // Boolean değerler için ayrı bir kontrol ekleyebiliriz
+        if (typeof value === 'boolean') {
+          updateData[key] = value;
+        }
+      }
+
+      await updateDoc(mealRef, updateData);
+      updatedCount++;
+    }
+
+    console.log(`${updatedCount} meal(s) updated successfully with the name: ${mealName}`);
+    return updatedCount; // Güncellenen yemek sayısını döndür
+  } catch (error) {
+    console.error("Error updating meal: ", error);
+    throw error;
+  }
+};
+
+const updateCategoryByName = async (categoryName, categoryDetails) => {
+  try {
+    const q = query(collection(db, "categories"), where("title", "==", categoryName));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      throw new Error(`No category found with the name: ${categoryName}`);
+    }
+
+    let updatedCount = 0;
+
+    for (const docSnapshot of querySnapshot.docs) {
+      const categoryRef = doc(db, "categories", docSnapshot.id);
+      const updateData = {};
+      
+      for (const [key, value] of Object.entries(categoryDetails)) {
+        if (value !== '' && value !== null && value !== undefined) {
+          updateData[key] = value;
+        }
+      }
+
+      await updateDoc(categoryRef, updateData);
+      updatedCount++;
+    }
+
+    console.log(`${updatedCount} category(ies) updated successfully with the name: ${categoryName}`);
+    return updatedCount;
+  } catch (error) {
+    console.error("Error updating category: ", error);
+    throw error;
+  }
+};
 
 
-export { fetchMeals, fetchCategories, createUser, login, addFavoriteMeal, removeFavoriteMeal, fetchUserFavorites, getCurrentUserId, addNewMeal, getUserRole, deleteMealByName, signOutUser };
+const recommendMealsBasedOnFavorites = async (userId) => {
+  try {
+    // Kullanıcının favori yemek ID'lerini al
+    const userFavoritesIds = await fetchUserFavorites(userId);
+
+    // Tüm yemekleri al
+    const allMeals = await fetchMeals();
+
+    // Favori yemeklerin detaylarını al
+    const favoriteMeals = await Promise.all(userFavoritesIds.map(id => getDoc(doc(db, "meals", id))));
+
+    const recommendedMeals = [];
+
+    // Özelliklerine göre filtreleme
+    favoriteMeals.forEach(favMealDoc => {
+      if (favMealDoc.exists()) {
+        const favMeal = favMealDoc.data();
+
+        // Glutensiz yemekleri filtrele
+        if (favMeal.isGlutenFree) {
+          recommendedMeals.push(...allMeals.filter(meal => meal.isGlutenFree && !userFavoritesIds.includes(meal.id)));
+        }
+        
+        // Laktozsuz yemekleri filtrele
+        if (favMeal.isLactoseFree) {
+          recommendedMeals.push(...allMeals.filter(meal => meal.isLactoseFree && !userFavoritesIds.includes(meal.id)));
+        }
+        
+        // Kategoriye göre benzer yemekleri filtrele
+        if (favMeal.category) {
+          recommendedMeals.push(...allMeals.filter(meal => meal.category === favMeal.category && !userFavoritesIds.includes(meal.id)));
+        }
+        if (favMeal.vegetarian) {
+          recommendedMeals.push(...allMeals.filter(meal => meal.vegetarian && !userFavoritesIds.includes(meal.id)));
+        }
+        // Diğer özellikler için benzer filtrelemeler eklenebilir
+      }
+    });
+
+    // Tekrar eden önerileri kaldırma
+    const uniqueRecommendations = Array.from(new Set(recommendedMeals.map(meal => meal.id)))
+                                       .map(id => recommendedMeals.find(meal => meal.id === id));
+
+    return uniqueRecommendations;
+  } catch (error) {
+    console.error('Error recommending meals based on favorites:', error);
+    throw error;
+  }
+};
 
 
 
+
+export { fetchMeals, fetchCategories, createUser, login, addFavoriteMeal, removeFavoriteMeal, fetchUserFavorites, getCurrentUserId, addNewMeal, getUserRole, deleteMealByName, signOutUser,addCategory,deleteCategoryByName, searchMealsByName, updateMealByName, updateCategoryByName, recommendMealsBasedOnFavorites };

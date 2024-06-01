@@ -16,6 +16,12 @@ import LoginScreen from './screens/Auth/LoginScreen';
 import SignupScreen from './screens/Auth/SignupScreen';
 import AddMealScreen from './screens/AddMealScreen';
 import DeleteMealScreen from './screens/DeleteMealScreen';
+import AddCategoriesScreen from './screens/AddCategoriesScreen';
+import DeleteCategoryScreen from './screens/DeleteCategoriesScreen';
+import SearchScreen from './screens/SearchScreen';
+import UpdateMealScreen from './screens/UpdateMealScreen';
+import UpdateCategoryScreen from './screens/UpdateCategoryScreen';
+import RecommendationsScreen from './screens/RecommendationsScreen';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -92,6 +98,22 @@ const DrawerNavigator = () => {
           drawerIcon: ({ color, size }) => <Ionicons name="star" color={color} size={size} />,
         }}
       />
+      <Drawer.Screen
+        name="Recommendations"
+        component={RecommendationsScreen}
+        options={{
+          title: 'Recommendations',
+          drawerIcon: ({color, size}) => <Ionicons name='heart' color={color} size={size}/>,
+        }}
+      />
+      <Drawer.Screen
+        name='SearchScreen'
+        component={SearchScreen}
+        options={{
+          title : 'Search Meal',
+          drawerIcon: ({color,size}) => <Ionicons name='search' color={color} size={size}/>,
+        }}
+      />
       {userRole === 'admin' && (
         <>
           <Drawer.Screen
@@ -110,11 +132,45 @@ const DrawerNavigator = () => {
               drawerIcon: ({ color, size }) => <Ionicons name="remove" color={color} size={size} />,
             }}
           />
+          <Drawer.Screen
+            name='AddCategoriesScreen'
+            component={AddCategoriesScreen}
+            options={{
+              title: 'Add New Category',
+              drawerIcon: ({color, size }) => <Ionicons name='add' color={color} size={size} />,
+          }}
+          />
+          <Drawer.Screen
+            name='DeleteCategoriesScreen'
+            component={DeleteCategoryScreen}
+            options={{
+              title: 'Delete Category',
+              drawerIcon: ({color, size}) => <Ionicons name='remove' color={color} size={size}/>,
+            }}
+          />
+          <Drawer.Screen 
+          name='UpdateMealScreen'
+          component={UpdateMealScreen}
+          options={{
+            title: 'Update Meal',
+            drawerIcon: ({color, size}) => <Ionicons name='create' color={color} size={size}/>,
+          }}
+          />
+          <Drawer.Screen
+          name='UpdateCategoryScreen'
+          component={UpdateCategoryScreen}
+          options={{
+            title: 'Update Category',
+            drawerIcon: ({color, size}) => <Ionicons name='create' color={color} size={size}/>,
+          }}
+          />
         </>
+        
       )}
     </Drawer.Navigator>
   );
 };
+
 
 export default function App() {
   return (

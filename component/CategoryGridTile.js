@@ -55,9 +55,13 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end', // Kategori adını altta göstermek için
     },
     titleContainer: {
-        padding: 16,
-        backgroundColor: 'rgba(255, 140, 0, 0.4)',  // Şeffaf siyah bir arka plan
-        width: '100%',
+        position: 'absolute', // Metni arka plan üzerine yerleştirmek için
+        bottom: 0, // En alta yerleştirin
+        left: 0, // Sol kenara hizalayın
+        right: 0, // Sağ kenara hizalayın
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Şeffaf siyah bir arka plan
+        paddingVertical: 8, // Dikey padding ekleyin
+        paddingHorizontal: 16, // Yatay padding ekleyin
         alignItems: 'center', // Metni yatay olarak ortala
     },
     title: {

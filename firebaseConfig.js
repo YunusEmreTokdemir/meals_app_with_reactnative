@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, deleteDoc, addDoc, doc, setDoc, getDoc, query, where, startAt, endAt, orderBy, updateDoc } from "firebase/firestore";
+import { getFirestore, collection, getDocs, deleteDoc, addDoc, doc, setDoc, getDoc, query, where, startAt, endAt, orderBy, updateDoc, documentId } from "firebase/firestore";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, initializeAuth, getReactNativePersistence } from "firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -345,19 +345,15 @@ const recommendMealsBasedOnFavorites = async (userId) => {
           recommendedMeals.push(...allMeals.filter(meal => meal.isGlutenFree && !userFavoritesIds.includes(meal.id)));
         }
         
-        // Laktozsuz yemekleri filtrele
-        if (favMeal.isLactoseFree) {
-          recommendedMeals.push(...allMeals.filter(meal => meal.isLactoseFree && !userFavoritesIds.includes(meal.id)));
+        // Vegan yemekleri filtrele
+        if (favMeal.isVegan) {
+          recommendedMeals.push(...allMeals.filter(meal => meal.isVegan && !userFavoritesIds.includes(meal.id)));
         }
-        
-        // Kategoriye göre benzer yemekleri filtrele
-        if (favMeal.category) {
-          recommendedMeals.push(...allMeals.filter(meal => meal.category === favMeal.category && !userFavoritesIds.includes(meal.id)));
+
+        // Vejetaryen yemekleri filtrele
+        if (favMeal.isVegetarian) {
+          recommendedMeals.push(...allMeals.filter(meal => meal.isVegetarian && !userFavoritesIds.includes(meal.id)));
         }
-        if (favMeal.vegetarian) {
-          recommendedMeals.push(...allMeals.filter(meal => meal.vegetarian && !userFavoritesIds.includes(meal.id)));
-        }
-        // Diğer özellikler için benzer filtrelemeler eklenebilir
       }
     });
 
@@ -371,6 +367,24 @@ const recommendMealsBasedOnFavorites = async (userId) => {
     throw error;
   }
 };
+
+// Kullanıcının favori yemeklerinin tam detaylarını çekme işlevi
+export const fetchUserFavoriteMeals = async (userId) => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "users", userId, "favorites"));
+    const favoriteMealIds = querySnapshot.docs.map(doc => doc.id);
+
+    const mealsSnapshot = await getDocs(query(collection(db, "meals"), where(documentId(), 'in', favoriteMealIds)));
+    return mealsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error fetching user favorite meals: ", error);
+    throw error;
+  }
+};
+
 
 
 
